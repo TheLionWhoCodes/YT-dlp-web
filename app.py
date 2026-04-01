@@ -9,12 +9,12 @@ import yt_dlp
 app = Flask(__name__)
 
 QUALITY_OPTIONS = [
-    {"id": "best",           "label": "🏆 Mejor calidad", "desc": "Máxima resolución disponible"},
-    {"id": "best[height<=1080]", "label": "🎬 1080p Full HD",  "desc": "MP4 · Alta definición"},
-    {"id": "best[height<=720]",  "label": "📺 720p HD",        "desc": "MP4 · Buena calidad"},
-    {"id": "best[height<=480]",  "label": "📱 480p",           "desc": "MP4 · Tamaño moderado"},
-    {"id": "best[height<=360]",  "label": "💾 360p",           "desc": "MP4 · Archivo ligero"},
-    {"id": "bestaudio/best",     "label": "🎵 Solo Audio",     "desc": "M4A · Sin video"},
+    {"id": "0",    "label": "🏆 Mejor calidad", "desc": "Máxima resolución disponible"},
+    {"id": "1080", "label": "🎬 1080p Full HD",  "desc": "MP4 · Alta definición"},
+    {"id": "720",  "label": "📺 720p HD",        "desc": "MP4 · Buena calidad"},
+    {"id": "480",  "label": "📱 480p",           "desc": "MP4 · Tamaño moderado"},
+    {"id": "360",  "label": "💾 360p",           "desc": "MP4 · Archivo ligero"},
+    {"id": "audio","label": "🎵 Solo Audio",     "desc": "M4A · Sin video"},
 ]
 
 
@@ -40,6 +40,30 @@ def build_ydl_opts(extra=None):
     if extra:
         opts.update(extra)
     return opts
+
+
+def get_format_opts(quality_id):
+    """Devuelve format y format_sort según la calidad seleccionada."""
+    if quality_id == "audio":
+        return {
+            "format": "bestaudio/best",
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "m4a",
+            }],
+        }
+    elif quality_id == "0":
+        return {
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mp4",
+        }
+    else:
+        height = int(quality_id)
+        return {
+            "format": "bestvideo+bestaudio/best",
+            "format_sort": [f"res:{height}", "ext:mp4:m4a"],
+            "merge_output_format": "mp4",
+        }
 
 
 @app.route("/")
@@ -77,7 +101,7 @@ def analyze():
 def download():
     data = request.get_json()
     url = (data.get("url") or "").strip()
-    format_id = data.get("format_id") or "best"
+    quality_id = data.get("format_id") or "0"
 
     if not url:
         return jsonify({"error": "URL vacía"}), 400
@@ -85,23 +109,15 @@ def download():
     tmp_dir = tempfile.mkdtemp()
 
     try:
-        # Intenta con el formato pedido, si falla usa "best"
-        for fmt in [format_id, "best"]:
-            try:
-                ydl_opts = build_ydl_opts({
-                    "format": fmt,
-                    "outtmpl": os.path.join(tmp_dir, "%(title)s.%(ext)s"),
-                    "merge_output_format": "mp4",
-                })
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=True)
-                    expected = ydl.prepare_filename(info)
-                break
-            except Exception:
-                shutil.rmtree(tmp_dir, ignore_errors=True)
-                tmp_dir = tempfile.mkdtemp()
-                if fmt == "best":
-                    raise
+        fmt_opts = get_format_opts(quality_id)
+        ydl_opts = build_ydl_opts({
+            "outtmpl": os.path.join(tmp_dir, "%(title)s.%(ext)s"),
+            **fmt_opts,
+        })
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            expected = ydl.prepare_filename(info)
 
         filename = expected
         if not os.path.exists(filename):
