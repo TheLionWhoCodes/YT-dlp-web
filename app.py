@@ -39,9 +39,11 @@ QUALITY_OPTIONS = [
         "desc": "M4A · Sin video"
     },
 ]
+
 ANDROID_OPTS = {
     "extractor_args": {"youtube": {"player_client": ["android"]}}
 }
+
 
 @app.route("/")
 def index():
@@ -60,6 +62,7 @@ def analyze():
             "quiet": True,
             "no_warnings": True,
             "socket_timeout": 15,
+            **ANDROID_OPTS,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -96,13 +99,13 @@ def download():
             "quiet": True,
             "no_warnings": True,
             "merge_output_format": "mp4",
+            **ANDROID_OPTS,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             expected = ydl.prepare_filename(info)
 
-        # Buscar el archivo generado (puede ser .mp4 tras el merge)
         filename = expected
         if not os.path.exists(filename):
             base = os.path.splitext(expected)[0]
