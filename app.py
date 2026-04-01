@@ -33,6 +33,7 @@ def build_ydl_opts(extra=None):
         "quiet": True,
         "no_warnings": True,
         "socket_timeout": 15,
+        "format": "best",
     }
     cookies_file = get_cookies_file()
     if cookies_file:
@@ -43,7 +44,6 @@ def build_ydl_opts(extra=None):
 
 
 def get_format_opts(quality_id):
-    """Devuelve format y format_sort según la calidad seleccionada."""
     if quality_id == "audio":
         return {
             "format": "bestaudio/best",
@@ -79,7 +79,7 @@ def analyze():
         return jsonify({"error": "URL vacía"}), 400
 
     try:
-        ydl_opts = build_ydl_opts()
+        ydl_opts = build_ydl_opts({"format": "best"})
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
