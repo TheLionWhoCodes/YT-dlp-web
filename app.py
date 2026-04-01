@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import threading
+import base64
 from flask import Flask, render_template, request, jsonify, send_file, after_this_request
 import yt_dlp
 
@@ -40,9 +41,30 @@ QUALITY_OPTIONS = [
     },
 ]
 
-ANDROID_OPTS = {
-    "extractor_args": {"youtube": {"player_client": ["android"]}}
-}
+
+def get_cookies_file():
+    """Decodifica las cookies desde variable de entorno y las guarda en archivo temporal."""
+    b64 = os.environ.get("YT_COOKIES_B64")
+    if not b64:
+        return None
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="wb")
+    tmp.write(base64.b64decode(b64))
+    tmp.close()
+    return tmp.name
+
+
+def build_ydl_opts(extra=None):
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "socket_timeout": 15,
+    }
+    cookies_file = get_cookies_file()
+    if cookies_file:
+        opts["cookiefile"] = cookies_file
+    if extra:
+        opts.update(extra)
+    return opts
 
 
 @app.route("/")
@@ -58,12 +80,7 @@ def analyze():
         return jsonify({"error": "URL vacía"}), 400
 
     try:
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "socket_timeout": 15,
-            **ANDROID_OPTS,
-        }
+        ydl_opts = build_ydl_opts()
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
@@ -93,14 +110,11 @@ def download():
     tmp_dir = tempfile.mkdtemp()
 
     try:
-        ydl_opts = {
+        ydl_opts = build_ydl_opts({
             "format": format_id,
             "outtmpl": os.path.join(tmp_dir, "%(title)s.%(ext)s"),
-            "quiet": True,
-            "no_warnings": True,
             "merge_output_format": "mp4",
-            **ANDROID_OPTS,
-        }
+        })
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
