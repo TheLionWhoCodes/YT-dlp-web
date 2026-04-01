@@ -9,36 +9,12 @@ import yt_dlp
 app = Flask(__name__)
 
 QUALITY_OPTIONS = [
-    {
-        "id": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-        "label": "🏆 Mejor calidad",
-        "desc": "Máxima resolución disponible"
-    },
-    {
-        "id": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080]/best",
-        "label": "🎬 1080p Full HD",
-        "desc": "MP4 · Alta definición"
-    },
-    {
-        "id": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]/best",
-        "label": "📺 720p HD",
-        "desc": "MP4 · Buena calidad"
-    },
-    {
-        "id": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]/best",
-        "label": "📱 480p",
-        "desc": "MP4 · Tamaño moderado"
-    },
-    {
-        "id": "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360]/best",
-        "label": "💾 360p",
-        "desc": "MP4 · Archivo ligero"
-    },
-    {
-        "id": "bestaudio[ext=m4a]/bestaudio/best",
-        "label": "🎵 Solo Audio",
-        "desc": "M4A · Sin video"
-    },
+    {"id": "best",           "label": "🏆 Mejor calidad", "desc": "Máxima resolución disponible"},
+    {"id": "best[height<=1080]", "label": "🎬 1080p Full HD",  "desc": "MP4 · Alta definición"},
+    {"id": "best[height<=720]",  "label": "📺 720p HD",        "desc": "MP4 · Buena calidad"},
+    {"id": "best[height<=480]",  "label": "📱 480p",           "desc": "MP4 · Tamaño moderado"},
+    {"id": "best[height<=360]",  "label": "💾 360p",           "desc": "MP4 · Archivo ligero"},
+    {"id": "bestaudio/best",     "label": "🎵 Solo Audio",     "desc": "M4A · Sin video"},
 ]
 
 
@@ -109,15 +85,23 @@ def download():
     tmp_dir = tempfile.mkdtemp()
 
     try:
-        ydl_opts = build_ydl_opts({
-            "format": format_id,
-            "outtmpl": os.path.join(tmp_dir, "%(title)s.%(ext)s"),
-            "merge_output_format": "mp4",
-        })
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            expected = ydl.prepare_filename(info)
+        # Intenta con el formato pedido, si falla usa "best"
+        for fmt in [format_id, "best"]:
+            try:
+                ydl_opts = build_ydl_opts({
+                    "format": fmt,
+                    "outtmpl": os.path.join(tmp_dir, "%(title)s.%(ext)s"),
+                    "merge_output_format": "mp4",
+                })
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    expected = ydl.prepare_filename(info)
+                break
+            except Exception:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                tmp_dir = tempfile.mkdtemp()
+                if fmt == "best":
+                    raise
 
         filename = expected
         if not os.path.exists(filename):
