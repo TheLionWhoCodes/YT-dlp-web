@@ -111,7 +111,7 @@ def download():
 
     try:
         ydl_opts = build_ydl_opts({
-            "format": format_id,
+            "format": f"{format_id}/best",
             "outtmpl": os.path.join(tmp_dir, "%(title)s.%(ext)s"),
             "merge_output_format": "mp4",
         })
