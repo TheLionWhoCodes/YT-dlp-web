@@ -39,7 +39,9 @@ QUALITY_OPTIONS = [
         "desc": "M4A · Sin video"
     },
 ]
-
+ANDROID_OPTS = {
+    "extractor_args": {"youtube": {"player_client": ["android"]}}
+}
 
 @app.route("/")
 def index():
