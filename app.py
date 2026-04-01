@@ -15,27 +15,27 @@ QUALITY_OPTIONS = [
         "desc": "Máxima resolución disponible"
     },
     {
-        "id": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080]",
+        "id": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080]/best",
         "label": "🎬 1080p Full HD",
         "desc": "MP4 · Alta definición"
     },
     {
-        "id": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]",
+        "id": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]/best",
         "label": "📺 720p HD",
         "desc": "MP4 · Buena calidad"
     },
     {
-        "id": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]",
+        "id": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]/best",
         "label": "📱 480p",
         "desc": "MP4 · Tamaño moderado"
     },
     {
-        "id": "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360]",
+        "id": "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360]/best",
         "label": "💾 360p",
         "desc": "MP4 · Archivo ligero"
     },
     {
-        "id": "bestaudio[ext=m4a]/bestaudio",
+        "id": "bestaudio[ext=m4a]/bestaudio/best",
         "label": "🎵 Solo Audio",
         "desc": "M4A · Sin video"
     },
@@ -43,7 +43,6 @@ QUALITY_OPTIONS = [
 
 
 def get_cookies_file():
-    """Decodifica las cookies desde variable de entorno y las guarda en archivo temporal."""
     b64 = os.environ.get("YT_COOKIES_B64")
     if not b64:
         return None
@@ -111,7 +110,7 @@ def download():
 
     try:
         ydl_opts = build_ydl_opts({
-            "format": f"{format_id}/best",
+            "format": format_id,
             "outtmpl": os.path.join(tmp_dir, "%(title)s.%(ext)s"),
             "merge_output_format": "mp4",
         })
